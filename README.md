@@ -1,6 +1,8 @@
+<img align="right" width="250" src="https://github.com/user-attachments/assets/60912eb3-fb24-4913-a446-64ca3d7e8423"/>
+
 <div style="display: flex; width: 100%;">
     <div style="flex: 1; padding: 20px;">
-        <h1>Video Recorder to Airtable</h1>
+        <h3>Video Recorder to Airtable</h1>
         <p>A simple but powerful web-based video recording application that allows users to capture video and audio directly from their browser. Built with modern web technologies including MediaRecorder API, this tool supports various video formats (WebM and MP4) and includes features like:</p>
         <ul>
             <li>Live video preview during recording</li>
@@ -10,6 +12,11 @@
             <li>Integration with Airtable for video management</li>
         </ul>
     </div>
-    <div style="flex: 1; padding: 20px;">
-    </div>
 </div>
+
+
+
+  <img alt="NodeJS" src="https://img.shields.io/badge/-NodeJS-43853d?style=flat-square&logo=Node.js&logoColor=white" />
+  <img alt="Express" src="https://img.shields.io/badge/-Express-000000?style=flat-square&logo=Express&logoColor=white" />
+  <img src="https://img.shields.io/badge/language-JavaScript%20%7C%20HTML%20%7C%20TypeScript-yellow" alt="Language: JavaScript | HTML | TypeScript">
+ 
