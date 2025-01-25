@@ -1,0 +1,17 @@
+{
+  "name": "media-recorder-api-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A demo implementation of the (new) [Media Recorder API](http://w3c.github.io/mediacapture-record/MediaRecorder.html) (also known as MediaStream Recording API).",
+  "main": "js/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "node-fetch": "^3.3.2"
+  }
+}
