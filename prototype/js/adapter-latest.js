@@ -23,23 +23,23 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.adapterFactory = adapterFactory;
 
-var _utils = require('./utils');
+var _utils = require('./utils.js');
 
 var utils = _interopRequireWildcard(_utils);
 
-var _chrome_shim = require('./chrome/chrome_shim');
+var _chrome_shim = require('./chrome/chrome_shim.js');
 
 var chromeShim = _interopRequireWildcard(_chrome_shim);
 
-var _firefox_shim = require('./firefox/firefox_shim');
+var _firefox_shim = require('./firefox/firefox_shim.js');
 
 var firefoxShim = _interopRequireWildcard(_firefox_shim);
 
-var _safari_shim = require('./safari/safari_shim');
+var _safari_shim = require('./safari/safari_shim.js');
 
 var safariShim = _interopRequireWildcard(_safari_shim);
 
-var _common_shim = require('./common_shim');
+var _common_shim = require('./common_shim.js');
 
 var commonShim = _interopRequireWildcard(_common_shim);
 
@@ -201,7 +201,7 @@ exports.shimGetDisplayMedia = exports.shimGetUserMedia = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _getusermedia = require('./getusermedia');
+var _getusermedia = require('./getusermedia.js');
 
 Object.defineProperty(exports, 'shimGetUserMedia', {
   enumerable: true,
@@ -210,7 +210,7 @@ Object.defineProperty(exports, 'shimGetUserMedia', {
   }
 });
 
-var _getdisplaymedia = require('./getdisplaymedia');
+var _getdisplaymedia = require('./getdisplaymedia.js');
 
 Object.defineProperty(exports, 'shimGetDisplayMedia', {
   enumerable: true,
@@ -1217,7 +1217,7 @@ var _sdp = require('sdp');
 
 var _sdp2 = _interopRequireDefault(_sdp);
 
-var _utils = require('./utils');
+var _utils = require('./utils.js');
 
 var utils = _interopRequireWildcard(_utils);
 
@@ -1642,7 +1642,7 @@ exports.shimGetDisplayMedia = exports.shimGetUserMedia = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _getusermedia = require('./getusermedia');
+var _getusermedia = require('./getusermedia.js');
 
 Object.defineProperty(exports, 'shimGetUserMedia', {
   enumerable: true,
@@ -1651,7 +1651,7 @@ Object.defineProperty(exports, 'shimGetUserMedia', {
   }
 });
 
-var _getdisplaymedia = require('./getdisplaymedia');
+var _getdisplaymedia = require('./getdisplaymedia.js');
 
 Object.defineProperty(exports, 'shimGetDisplayMedia', {
   enumerable: true,

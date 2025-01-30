@@ -1,0 +1,237 @@
+<script>
+  class VideoRecorderComponent extends HTMLElement {
+      constructor() {
+          super();
+          
+          // Create shadow DOM
+          this.attachShadow({ mode: 'open' });
+          
+          // Add styles and initial HTML
+          this.shadowRoot.innerHTML = `
+              <style>
+                  :host {
+                      display: block;
+                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                  }
+                  .video-container {
+                      max-width: 1280px;
+                      margin: 0 auto;
+                      background: #f5f5f5;
+                      border-radius: 8px;
+                      padding: 20px;
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  }
+                  video {
+                      width: 100%;
+                      height: auto;
+                      background: #000;
+                      border-radius: 4px;
+                  }
+                  .controls {
+                      margin: 1rem 0;
+                      display: flex;
+                      gap: 0.5rem;
+                  }
+                  button {
+                      flex: 1;
+                      padding: 1rem;
+                      background: #ed341d;
+                      color: white;
+                      border: none;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      font-size: 1rem;
+                      font-weight: bold;
+                      transition: background 0.2s;
+                  }
+                  button:hover:not(:disabled) {
+                      background: #d42d19;
+                  }
+                  button:disabled {
+                      background: #ccc;
+                      cursor: not-allowed;
+                  }
+                  .error {
+                      color: #d42d19;
+                      padding: 1rem;
+                      text-align: center;
+                      background: #fff;
+                      border-radius: 4px;
+                      margin-top: 1rem;
+                  }
+                  #downloadLink {
+                      display: none;
+                      text-align: center;
+                      padding: 1rem;
+                      background: #4CAF50;
+                      color: white;
+                      text-decoration: none;
+                      border-radius: 4px;
+                      margin-top: 1rem;
+                  }
+                  #downloadLink:hover {
+                      background: #45a049;
+                  }
+              </style>
+              <div class="video-container">
+                  <video id="videoElement" autoplay playsinline></video>
+                  <div class="controls">
+                      <button id="recordBtn">Record</button>
+                      <button id="stopBtn" disabled>Stop</button>
+                  </div>
+                  <a id="downloadLink" style="display:none"></a>
+              </div>
+          `;
+  
+          // Recording state
+          this.mediaRecorder = null;
+          this.chunks = [];
+          this.stream = null;
+  
+          // Fixed settings
+          this.constraints = {
+              audio: true,
+              video: {
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  frameRate: { ideal: 30 }
+              }
+          };
+  
+          this.recorderOptions = {
+              mimeType: 'video/webm;codecs=vp8,opus',
+              videoBitsPerSecond: 2500000
+          };
+  
+          // Get DOM elements
+          this.video = this.shadowRoot.querySelector('#videoElement');
+          this.recordBtn = this.shadowRoot.querySelector('#recordBtn');
+          this.stopBtn = this.shadowRoot.querySelector('#stopBtn');
+          this.downloadLink = this.shadowRoot.querySelector('#downloadLink');
+  
+          // Bind event listeners
+          this.recordBtn.addEventListener('click', () => this.startRecording());
+          this.stopBtn.addEventListener('click', () => this.stopRecording());
+      }
+  
+      connectedCallback() {
+          this.init();
+      }
+  
+      async init() {
+          try {
+              if (!navigator.mediaDevices || !window.MediaRecorder) {
+                  throw new Error('Your browser does not support video recording');
+              }
+  
+              if (!MediaRecorder.isTypeSupported(this.recorderOptions.mimeType)) {
+                  throw new Error('WebM format is not supported in this browser');
+              }
+  
+              this.stream = await navigator.mediaDevices.getUserMedia(this.constraints);
+              this.video.srcObject = this.stream;
+              this.video.muted = true;
+  
+          } catch (error) {
+              console.error('Initialization failed:', error);
+              this.showError(error.message);
+          }
+      }
+  
+      startRecording() {
+          this.chunks = [];
+          this.mediaRecorder = new MediaRecorder(this.stream, this.recorderOptions);
+          
+          this.mediaRecorder.ondataavailable = (e) => {
+              if (e.data.size > 0) {
+                  this.chunks.push(e.data);
+              }
+          };
+          
+          this.mediaRecorder.onstop = () => this.handleRecordingStop();
+          
+          this.mediaRecorder.start(1000);
+          this.updateUI('recording');
+      }
+  
+      stopRecording() {
+          if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+              this.mediaRecorder.stop();
+          }
+      }
+  
+      handleRecordingStop() {
+          const recording = new Blob(this.chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(recording);
+          
+          this.video.srcObject = null;
+          this.video.src = url;
+          this.video.muted = false;
+          
+          const fileName = `recording_${Date.now()}.webm`;
+          this.downloadLink.href = url;
+          this.downloadLink.download = fileName;
+          this.downloadLink.textContent = 'Download Recording';
+          
+          this.updateUI('playback');
+          
+          // Send to Airtable
+          this.sendToAirtable(fileName, url.replace('blob:', ''));
+      }
+  
+      async sendToAirtable(fileName, url) {
+          try {
+              const data = {
+                  fileName,
+                  recordedAt: new Date().toISOString(),
+                  fileType: 'video/webm',
+                  downloadUrl: url
+              };
+              
+              const response = await fetch('/upload-to-airtable', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(data)
+              });
+              
+              if (!response.ok) throw new Error('Upload failed');
+              
+          } catch (error) {
+              console.error('Airtable upload failed:', error);
+          }
+      }
+  
+      updateUI(state) {
+          switch (state) {
+              case 'recording':
+                  this.recordBtn.disabled = true;
+                  this.stopBtn.disabled = false;
+                  this.downloadLink.style.display = 'none';
+                  break;
+              case 'playback':
+                  this.recordBtn.disabled = false;
+                  this.stopBtn.disabled = true;
+                  this.downloadLink.style.display = 'block';
+                  break;
+          }
+      }
+  
+      showError(message) {
+          const error = document.createElement('div');
+          error.className = 'error';
+          error.textContent = message;
+          this.shadowRoot.querySelector('.video-container').appendChild(error);
+      }
+  
+      disconnectedCallback() {
+          // Cleanup when element is removed
+          if (this.stream) {
+              this.stream.getTracks().forEach(track => track.stop());
+          }
+      }
+  }
+  
+  // Register the custom element
+  customElements.define('video-recorder', VideoRecorderComponent);
+  </script>
+  <video-recorder></video-recorder>
