@@ -170,21 +170,15 @@
             downloadLink.href = url;
             downloadLink.textContent = 'Download Recording';
 
-            // Send video URL to server
+            // Create FormData and append the video blob
+            const formData = new FormData();
+            formData.append('video', blob, `recording_${Date.now()}.webm`);
+
+            // Send to server
             try {
                 const response = await fetch('http://localhost:3000/upload-to-airtable', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        videoUrl: url,
-                        metadata: {
-                            recordedAt: new Date().toISOString(),
-                            fileType: 'video/webm',
-                            fileName: `recording_${Date.now()}.webm`
-                        }
-                    })
+                    body: formData  // No need to set Content-Type header, browser will set it
                 });
 
                 if (!response.ok) throw new Error('Upload failed');

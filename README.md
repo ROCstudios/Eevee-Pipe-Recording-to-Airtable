@@ -20,3 +20,21 @@
   <img alt="Express" src="https://img.shields.io/badge/-Express-000000?style=flat-square&logo=Express&logoColor=white" />
   <img src="https://img.shields.io/badge/language-JavaScript%20%7C%20HTML%20%7C%20TypeScript-yellow" alt="Language: JavaScript | HTML | TypeScript">
  
+### AWS instructions
+
+aws s3api put-public-access-block \
+    --bucket growth-machine-default \
+    --public-access-block-configuration "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
+
+aws s3api put-bucket-policy --bucket growth-machine-default --policy '{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::growth-machine-default/*"
+        }
+    ]
+}'
