@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Video Recorder</title>
+    <style>
+        .recorder-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+        }
+
+        .video-wrapper {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        video {
+            width: 640px;
+            height: 360px;
+            background: #000;
+            border-radius: 8px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #downloadLink {
+            display: block;
+            margin-top: 20px;
+        }
+
+        #data {
+            margin-top: 20px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="recorder-container">
+        <h1>Video Recorder</h1>
+        <div class="video-wrapper">
+            <video id="live" controls autoplay playsinline muted></video>
+            <video id="playback" controls></video>
+        </div>
+        <div class="controls">
+            <button id="rec">Record</button>
+            <button id="pauseRes" disabled>Pause</button>
+            <button id="stop" disabled>Stop</button>
+            <button id="stateButton">Trace State</button>
+        </div>
+        <a id="downloadLink" download="mediarecorder.webm" name="mediarecorder.webm" href></a>
+        <p id="data"></p>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let recordedBlobs = [];
+        let liveStream;
+
+        // Get DOM elements
+        const liveVideo = document.getElementById('live');
+        const playbackVideo = document.getElementById('playback');
+        const recordButton = document.getElementById('rec');
+        const pauseResButton = document.getElementById('pauseRes');
+        const stopButton = document.getElementById('stop');
+        const stateButton = document.getElementById('stateButton');
+        const downloadLink = document.getElementById('downloadLink');
+        const dataElement = document.getElementById('data');
+
+        // Add event listeners
+        recordButton.addEventListener('click', toggleRecording);
+        pauseResButton.addEventListener('click', pauseResumeRecording);
+        stopButton.addEventListener('click', stopRecording);
+        stateButton.addEventListener('click', logState);
+
+        async function initializeMedia() {
+            try {
+                const constraints = {
+                    audio: true,
+                    video: {
+                        width: 1280,
+                        height: 720
+                    }
+                };
+
+                liveStream = await navigator.mediaDevices.getUserMedia(constraints);
+                liveVideo.srcObject = liveStream;
+            } catch (err) {
+                console.error('Error accessing media devices:', err);
+            }
+        }
+
+        function toggleRecording() {
+            if (recordButton.textContent === 'Record') {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        function startRecording() {
+            recordedBlobs = [];
+            const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+
+            try {
+                mediaRecorder = new MediaRecorder(liveStream, options);
+            } catch (err) {
+                console.error('Error creating MediaRecorder:', err);
+                return;
+            }
+
+            recordButton.textContent = 'Stop';
+            pauseResButton.disabled = false;
+            stopButton.disabled = false;
+
+            mediaRecorder.ondataavailable = handleDataAvailable;
+            mediaRecorder.onstop = handleStop;
+            mediaRecorder.start(10); // Collect data every 10ms
+        }
+
+        async function stopRecording() {
+            mediaRecorder.stop();
+            recordButton.textContent = 'Record';
+            pauseResButton.disabled = true;
+            stopButton.disabled = true;
+        }
+
+        function pauseResumeRecording() {
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.pause();
+                pauseResButton.textContent = 'Resume';
+            } else if (mediaRecorder.state === 'paused') {
+                mediaRecorder.resume();
+                pauseResButton.textContent = 'Pause';
+            }
+        }
+
+        function handleDataAvailable(event) {
+            if (event.data && event.data.size > 0) {
+                recordedBlobs.push(event.data);
+            }
+        }
+
+        async function handleStop() {
+            const blob = new Blob(recordedBlobs, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            
+            playbackVideo.src = url;
+            downloadLink.href = url;
+            downloadLink.textContent = 'Download Recording';
+
+            // Send video URL to server
+            try {
+                const response = await fetch('http://localhost:3000/upload-to-airtable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        videoUrl: url,
+                        metadata: {
+                            recordedAt: new Date().toISOString(),
+                            fileType: 'video/webm',
+                            fileName: `recording_${Date.now()}.webm`
+                        }
+                    })
+                });
+
+                if (!response.ok) throw new Error('Upload failed');
+                const data = await response.json();
+                dataElement.textContent = 'Upload successful: ' + JSON.stringify(data);
+            } catch (error) {
+                dataElement.textContent = 'Upload failed: ' + error.message;
+            }
+        }
+
+        function logState() {
+            dataElement.textContent = `Media Recorder state: ${mediaRecorder?.state || 'not initialized'}`;
+        }
+
+        // Initialize when page loads
+        initializeMedia();
+    </script>
+</body>
+</html>
