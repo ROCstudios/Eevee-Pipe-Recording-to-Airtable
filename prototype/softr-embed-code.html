@@ -227,20 +227,17 @@
                 try {
                     this.showStatus('Uploading recording...', 'info');
 
-                    // Create form data with the actual video file
+                    // Create form data with just the video blob
                     const formData = new FormData();
                     formData.append('video', this.recordedBlob, `recording_${Date.now()}.webm`);
-                    formData.append('metadata', JSON.stringify({
-                        recordedAt: new Date().toISOString(),
-                        fileType: 'video/webm'
-                    }));
 
                     const response = await fetch(this.config.uploadEndpoint, {
                         method: 'POST',
-                        body: formData
+                        body: formData  // No need to set Content-Type header, browser will set it
                     });
 
                     if (!response.ok) throw new Error('Upload failed');
+                    const data = await response.json();
                     
                     this.showStatus('Recording uploaded successfully!', 'success');
                     this.updateUI('submitted');
