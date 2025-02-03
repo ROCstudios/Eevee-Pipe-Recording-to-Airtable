@@ -147,7 +147,7 @@
                 this.recordedBlob = null;
 
                 this.config = {
-                    uploadEndpoint: config.uploadEndpoint || '/upload-to-airtable',
+                    uploadEndpoint: config.uploadEndpoint || 'https://media-pipe-recording-to-airtable.onrender.com/upload-to-airtable',
                     constraints: {
                         audio: true,
                         video: {
@@ -309,7 +309,7 @@
         // Initialize the recorder
         window.addEventListener('load', () => {
             new VideoRecorder('recorder', {
-                uploadEndpoint: 'http://localhost:3000/upload-to-airtable'
+                uploadEndpoint: 'https://media-pipe-recording-to-airtable.onrender.com/upload-to-airtable'
             });
         });
     </script>
