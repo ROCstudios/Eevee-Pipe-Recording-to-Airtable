@@ -7,7 +7,6 @@ import path from 'path';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import dotenv from 'dotenv';
 import multer from 'multer';
-import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
@@ -71,7 +70,7 @@ app.post('/upload-to-airtable', (req, res) => {
             }
 
             // Upload to S3
-            const filename = `embedded-recording-${uuidv4()}-${Date.now()}.webm`;
+            const filename = `embedded-recording-${Date.now()}.webm`;
             const s3Response = await s3Client.send(new PutObjectCommand({
                 Bucket: process.env.S3_BUCKET_NAME,
                 Key: filename,
