@@ -22,6 +22,9 @@
  
 ### AWS instructions
 
+```
+aws configure
+
 aws s3api put-public-access-block \
     --bucket growth-machine-default \
     --public-access-block-configuration "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
@@ -38,3 +41,4 @@ aws s3api put-bucket-policy --bucket growth-machine-default --policy '{
         }
     ]
 }'
+```
