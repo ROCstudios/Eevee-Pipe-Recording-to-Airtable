@@ -37,7 +37,17 @@ const upload = multer({
     }
 }).single('video');
 
-app.use(cors());
+app.use(cors({
+    origin: [
+        'https://s3.us-east-1.amazonaws.com',
+        'https://s3.amazonaws.com',
+        // Add any other domains that need access
+    ],
+    methods: ['POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
+}));
+app.options('*', cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../')));
 
