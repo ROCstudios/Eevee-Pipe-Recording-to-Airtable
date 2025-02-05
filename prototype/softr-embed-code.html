@@ -146,8 +146,19 @@
                 this.stream = null;
                 this.recordedBlob = null;
 
+                this.debug = config.debug || false;
+                this.loggedInUser = config.loggedInUser || null;
+                // this.loggedInUser = config.loggedInUser || {
+                    //     ID: 'Leif Eriksen (leif@theidh.com)',
+                    //     record_id: 'recgTfcTJGh7dSnHC',
+                    //     Company: ['rec7dv7PA6ldgMr4m'],
+                    //     airtable_record_id: 'recgTfcTJGh7dSnHC'
+                // };
+                console.log('🚀 ~ VideoRecorder ~ constructor ~ running with:', this.loggedInUser, this.debug ? 'DEBUG MODE' : 'PRODUCTION MODE');
+                
+
                 this.config = {
-                    uploadEndpoint: config.uploadEndpoint || 'https://media-pipe-recording-to-airtable.onrender.com/upload-to-airtable',
+                    uploadEndpoint: (this.debug ? 'http://localhost:3000/upload-to-airtable' : config.uploadEndpoint),
                     constraints: {
                         audio: true,
                         video: {
@@ -230,6 +241,8 @@
                     // Create form data with just the video blob
                     const formData = new FormData();
                     formData.append('video', this.recordedBlob, `recording_${Date.now()}.webm`);
+                    formData.append('loggedInUser', JSON.stringify(this.loggedInUser));
+                    formData.append('debug', this.debug);
 
                     const response = await fetch(this.config.uploadEndpoint, {
                         method: 'POST',
@@ -309,7 +322,9 @@
         // Initialize the recorder
         window.addEventListener('load', () => {
             new VideoRecorder('recorder', {
-                uploadEndpoint: 'https://media-pipe-recording-to-airtable.onrender.com/upload-to-airtable'
+                debug: false,
+                uploadEndpoint: 'https://media-pipe-recording-to-airtable.onrender.com/upload-to-airtable',
+                loggedInUser: window.logged_in_user
             });
         });
     </script>

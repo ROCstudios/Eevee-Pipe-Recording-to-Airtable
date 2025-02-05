@@ -9,6 +9,12 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 
 dotenv.config();
+console.log('Environment variables check:', {
+    AWS_REGION: process.env.AWS_REGION,
+    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
+    HAS_ACCESS_KEY: !!process.env.AWS_ACCESS_KEY_ID,
+    HAS_SECRET_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,9 +52,21 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../')));
+app.use(express.urlencoded({ extended: true }));
 
 app.post('/upload-to-airtable', (req, res) => {
     upload(req, res, async function(err) {
+
+        const debug = req.body.debug;
+        let loggedInUser = {};
+
+        console.log('Debug:', debug);
+        console.log('Inside upload callback');
+        if (req.body.loggedInUser) {
+            loggedInUser = JSON.parse(req.body.loggedInUser);
+            console.log('Logged in user:', loggedInUser);
+        }
+
         if (err instanceof multer.MulterError) {
             // A Multer error occurred when uploading
             if (err.code === 'LIMIT_FILE_SIZE') {
@@ -76,7 +94,7 @@ app.post('/upload-to-airtable', (req, res) => {
             }
 
             // Upload to S3
-            const filename = `embedded-recording-${Date.now()}.webm`;
+            const filename = `${debug ? 'TEST-PLEASE-DELETE-' : ''}-${loggedInUser.record_id}-${Date.now()}.webm`;
             const s3Response = await s3Client.send(new PutObjectCommand({
                 Bucket: process.env.S3_BUCKET_NAME,
                 Key: filename,
@@ -96,11 +114,12 @@ app.post('/upload-to-airtable', (req, res) => {
                 body: JSON.stringify({
                     videoUrl: s3Url,
                     filename: filename,
+                    loggedInUser: loggedInUser,
                     metadata: {
                         recordedAt: new Date().toISOString(),
                         fileType: req.file.mimetype,
                         fileName: filename,
-                        size: req.file.size
+                        size: req.file.size,
                     }
                 })
             });
