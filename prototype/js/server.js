@@ -57,10 +57,8 @@ app.use(express.urlencoded({ extended: true }));
 app.post('/upload-to-airtable', (req, res) => {
     upload(req, res, async function(err) {
 
-        const debug = req.body.debug;
         let loggedInUser = {};
 
-        console.log('Debug:', debug);
         console.log('Inside upload callback');
         if (req.body.loggedInUser) {
             loggedInUser = JSON.parse(req.body.loggedInUser);
@@ -94,7 +92,7 @@ app.post('/upload-to-airtable', (req, res) => {
             }
 
             // Upload to S3
-            const filename = `${debug ? 'TEST-PLEASE-DELETE-' : ''}-${loggedInUser.record_id}-${Date.now()}.webm`;
+            const filename = `${loggedInUser.record_id}-${Date.now()}.webm`;
             const s3Response = await s3Client.send(new PutObjectCommand({
                 Bucket: process.env.S3_BUCKET_NAME,
                 Key: filename,
