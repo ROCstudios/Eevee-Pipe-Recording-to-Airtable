@@ -25,6 +25,10 @@
             display: block;
         }
 
+        .mirror {
+            transform: scaleX(-1);
+        }
+
         .controls {
             padding: 1rem;
             display: flex;
@@ -189,6 +193,7 @@
                     this.stream = await navigator.mediaDevices.getUserMedia(this.config.constraints);
                     this.video.srcObject = this.stream;
                     this.video.muted = true;
+                    this.video.classList.add('mirror');
                     this.video.play();
 
                     this.updateUI('initial');
@@ -228,6 +233,7 @@
                 this.video.srcObject = null;
                 this.video.src = url;
                 this.video.muted = false;
+                this.video.classList.remove('mirror');
                 
                 this.state = 'review';
                 this.recordingIndicator.style.display = 'none';
@@ -268,6 +274,7 @@
                 // Reset video to camera stream
                 this.video.srcObject = this.stream;
                 this.video.muted = true;
+                this.video.classList.add('mirror');
                 this.video.play();
                 
                 this.state = 'initial';
