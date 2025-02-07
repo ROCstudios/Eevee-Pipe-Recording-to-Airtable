@@ -54,7 +54,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../')));
 app.use(express.urlencoded({ extended: true }));
 
-app.post('/upload-to-airtable', (req, res) => {
+app.post('/upload-video', (req, res) => {
     upload(req, res, async function(err) {
 
         let loggedInUser = {};
@@ -92,7 +92,7 @@ app.post('/upload-to-airtable', (req, res) => {
             }
 
             // Upload to S3
-            const filename = `${loggedInUser.record_id}-${Date.now()}.webm`;
+            const filename = `${Date.now()}.webm`;
             const s3Response = await s3Client.send(new PutObjectCommand({
                 Bucket: process.env.S3_BUCKET_NAME,
                 Key: filename,
@@ -110,12 +110,12 @@ app.post('/upload-to-airtable', (req, res) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    videoUrl: s3Url,
+                    url: s3Url,
                     filename: filename,
                     loggedInUser: loggedInUser,
+                    fileType: "Video",
                     metadata: {
                         recordedAt: new Date().toISOString(),
-                        fileType: req.file.mimetype,
                         fileName: filename,
                         size: req.file.size,
                     }
@@ -130,6 +130,104 @@ app.post('/upload-to-airtable', (req, res) => {
             res.json({
                 success: true,
                 videoUrl: s3Url,
+                data
+            });
+        } catch (error) {
+            console.error('Error:', error);
+            res.status(500).json({ 
+                success: false,
+                error: error.message 
+            });
+        }
+    });
+});
+
+const audioUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 100 * 1024 * 1024, // 100MB in bytes
+    },
+    fileFilter: (req, file, cb) => {
+        // Accept audio files only
+        if (file.mimetype.startsWith('audio/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only audio files are allowed!'), false);
+        }
+    }
+}).single('audio');
+
+app.post('/upload-audio', (req, res) => {
+    audioUpload(req, res, async function(err) {
+        let loggedInUser = {};
+
+        if (req.body.loggedInUser) {
+            loggedInUser = JSON.parse(req.body.loggedInUser);
+            console.log('Logged in user:', loggedInUser);
+        }
+
+        if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({
+                    success: false,
+                    error: 'File is too large. Maximum size is 100MB'
+                });
+            }
+            return res.status(400).json({
+                success: false,
+                error: err.message
+            });
+        } else if (err) {
+            return res.status(500).json({
+                success: false,
+                error: err.message
+            });
+        }
+
+        try {
+            if (!req.file) {
+                throw new Error('No file uploaded');
+            }
+
+            // Upload to S3
+            const filename = `${Date.now()}.webm`;
+            const s3Response = await s3Client.send(new PutObjectCommand({
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: filename,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype
+            }));
+
+            // Get S3 URL
+            const s3Url = `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${filename}`;
+
+            // Forward to Airtable
+            const response = await fetch(process.env.AIRTABLE_WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: s3Url,
+                    filename: filename,
+                    loggedInUser: loggedInUser,
+                    fileType: "Audio",
+                    metadata: {
+                        recordedAt: new Date().toISOString(),
+                        fileName: filename,
+                        size: req.file.size,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Airtable responded with status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            res.json({
+                success: true,
+                audioUrl: s3Url,
                 data
             });
         } catch (error) {

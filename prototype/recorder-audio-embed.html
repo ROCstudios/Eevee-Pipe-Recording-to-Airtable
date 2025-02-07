@@ -276,7 +276,7 @@
 
         window.addEventListener('load', () => {
             new AudioRecorder('recorder', {
-                debug: false,
+                debug: true,
                 uploadEndpoint: 'https://media-pipe-recording-to-airtable.onrender.com/upload-audio',
                 loggedInUser: window.logged_in_user
             });
