@@ -7,8 +7,12 @@ import path from 'path';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import fs from 'fs-extra';
+import ffmpeg from 'fluent-ffmpeg';
+import os from 'os';
 
 dotenv.config();
+
 console.log('Environment variables check:', {
     AWS_REGION: process.env.AWS_REGION,
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
@@ -28,7 +32,20 @@ const s3Client = new S3Client({
     }
 });
 
-const upload = multer({
+app.use(cors({
+    origin: '*',
+    methods: ['POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
+}));
+app.options('*', cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../')));
+app.use(express.urlencoded({ extended: true }));
+
+let tempDir;
+
+const videoUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 5 * 1024 * 1024 * 1024, // 5GB in bytes
@@ -43,19 +60,8 @@ const upload = multer({
     }
 }).single('video');
 
-app.use(cors({
-    origin: '*',
-    methods: ['POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true
-}));
-app.options('*', cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../')));
-app.use(express.urlencoded({ extended: true }));
-
 app.post('/upload-video', (req, res) => {
-    upload(req, res, async function(err) {
+    videoUpload(req, res, async function(err) {
 
         let loggedInUser = {};
 
@@ -91,13 +97,44 @@ app.post('/upload-video', (req, res) => {
                 throw new Error('No file uploaded');
             }
 
+            // Create temporary files for conversion
+            tempDir = path.join(os.tmpdir(), `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+            const tempInputPath = `/tmp/input-${Date.now()}.webm`;
+            const tempOutputPath = `/tmp/output-${Date.now()}.mp4`;
+
+            // Write buffer to temporary file
+            await fs.writeFile(tempInputPath, req.file.buffer);
+
+            // Convert WebM to MP4
+            await new Promise((resolve, reject) => {
+                ffmpeg(tempInputPath)
+                    .toFormat('mp4')
+                    .addOptions([
+                        '-c:v libx264',
+                        '-c:a aac',
+                        '-strict experimental',
+                        '-b:a 192k'
+                    ])
+                    .on('end', () => resolve())
+                    .on('error', (err) => reject(new Error(`FFmpeg error: ${err.message}`)))
+                    .save(tempOutputPath);
+            });
+
+            // Read the converted file
+            const mp4Buffer = await fs.readFile(tempOutputPath);
+
+            // Clean up temporary files
+            await fs.unlink(tempInputPath).catch(console.error);
+            await fs.unlink(tempOutputPath).catch(console.error);
+
+
             // Upload to S3
-            const filename = `${Date.now()}.webm`;
+            const filename = `${Date.now()}.mp4`;
             const s3Response = await s3Client.send(new PutObjectCommand({
                 Bucket: process.env.S3_BUCKET_NAME,
                 Key: filename,
-                Body: req.file.buffer,
-                ContentType: req.file.mimetype
+                Body: mp4Buffer,
+                ContentType: 'video/mp4'
             }));
 
             // Get S3 URL
@@ -138,6 +175,12 @@ app.post('/upload-video', (req, res) => {
                 success: false,
                 error: error.message 
             });
+        } finally {
+            try {
+                await fs.remove(tempDir);
+            } catch (cleanupError) {
+                console.error('Error cleaning up temp files:', cleanupError);
+            }
         }
     });
 });

@@ -147,17 +147,19 @@
             }
 
             async initializeMedia() {
-                try {
-                    if (!navigator.mediaDevices || !window.MediaRecorder) {
-                        throw new Error('Your browser does not support audio recording');
-                    }
+              try {
+                  if (!navigator.mediaDevices || !window.MediaRecorder) {
+                      throw new Error('Your browser does not support audio recording');
+                  }
 
-                    this.stream = await navigator.mediaDevices.getUserMedia(this.config.constraints);
-                    this.updateUI('initial');
-                } catch (error) {
-                    this.showError(error.message);
-                }
-            }
+                  this.stream = await navigator.mediaDevices.getUserMedia(this.config.constraints);
+                  this.updateUI('initial');
+              } catch (error) {
+                  // Only show error if user tries to record
+                  console.warn('Media initialization error:', error);
+                  this.updateUI('initial'); // Still show the initial UI
+              }
+          }
 
             startRecording() {
                 this.chunks = [];
@@ -265,9 +267,9 @@
                 this.status.className = 'status error';
                 this.status.textContent = message;
                 this.status.style.display = 'block';
-            }
-
-            showStatus(message, type = 'info') {
+              }
+              
+              showStatus(message, type = 'info') {
                 this.status.className = `status ${type}`;
                 this.status.textContent = message;
                 this.status.style.display = 'block';
@@ -276,7 +278,7 @@
 
         window.addEventListener('load', () => {
             new AudioRecorder('recorder', {
-                debug: true,
+                debug: false,
                 uploadEndpoint: 'https://media-pipe-recording-to-airtable.onrender.com/upload-audio',
                 loggedInUser: window.logged_in_user
             });
